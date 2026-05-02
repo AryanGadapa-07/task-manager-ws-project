@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <script>
+        // Keep CSS animation continuous across page reloads
+        const now = Date.now() / 1000;
+        document.documentElement.style.setProperty('--bg-delay', -(now % 25) + 's');
+
+        function createParticles(event) {
+            const checkbox = event.target;
+            const rect = checkbox.getBoundingClientRect();
+            const x = rect.left + rect.width / 2 + window.scrollX;
+            const y = rect.top + rect.height / 2 + window.scrollY;
+
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const colors = ['#4caf50', '#81c784', '#2e7d32', '#66bb6a'];
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 20 + Math.random() * 25;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 400);
+            }
+        }
+    </script>
+    <style>
+        /* CSS Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 50px 20px;
+            /* Gradient Background with animation */
+            background: linear-gradient(-45deg, #ffb3ba, #bae1ff, #baffc9);
+            background-size: 400% 400%;
+            animation: fogGradient 25s ease infinite var(--bg-delay, 0s);
+        }
+
+        @keyframes fogGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Glass & Claymorphism Utility */
+        .glass-box {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.05),
+                       -8px -8px 16px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Header */
+        .header-section {
+            display: flex;
+            align-items: stretch;
+            gap: 20px;
+        }
+
+        .title-container {
+            flex-grow: 1;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .title-container h1 {
+            color: #333;
+            font-size: 30px;
+            font-weight: 600;
+        }
+
+        .profile-box {
+            width: 76px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            flex-shrink: 0;
+            border-radius: 20px;
+        }
+
+        /* Input + Filter Section */
+        .controls-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .filter-btn {
+            text-decoration: none;
+            color: #555;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .filter-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.06),
+                        inset -4px -4px 8px rgba(255,255,255,0.6);
+            color: #222;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-grow: 1;
+            max-width: 450px;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        .task-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+            padding: 10px 5px;
+            font-size: 16px;
+            outline: none;
+            flex-grow: 1;
+            color: #333;
+            transition: border-color 0.3s ease;
+        }
+        
+        .task-input:focus {
+            border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+        }
+
+        .task-input::placeholder {
+            color: rgba(0, 0, 0, 0.4);
+            transition: color 0.3s;
+        }
+        .task-input:focus::placeholder {
+            color: transparent;
+        }
+
+        /* Search + Enter Button */
+        .enter-group {
+            display: flex;
+            border-radius: 14px;
+            overflow: hidden;
+            padding: 0;
+            align-items: stretch;
+        }
+
+        .enter-btn, .search-toggle-btn {
+            border: none;
+            cursor: pointer;
+            padding: 12px 20px;
+            background: transparent;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 17px;
+            color: #444;
+            transition: all 0.2s ease;
+        }
+        
+        .enter-group:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .enter-group:active {
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.06),
+                        inset -4px -4px 8px rgba(255,255,255,0.6);
+        }
+
+        .divider {
+            width: 1px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 8px 0;
+        }
+
+        /* Task List Section */
+        .task-list-container {
+            padding: 10px 30px;
+            min-height: 200px;
+        }
+
+        .task-row {
+            display: grid;
+            grid-template-columns: 40px 1fr auto;
+            align-items: center;
+            padding: 15px 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            gap: 15px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 12px;
+        }
+        
+        .task-row.highlight {
+            background-color: rgba(255, 255, 255, 0.4);
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.6);
+            border-bottom-color: transparent;
+        }
+
+        .task-row:last-child {
+            border-bottom: none;
+        }
+
+        .task-index {
+            font-size: 18px;
+            color: #777;
+            font-weight: 600;
+            padding-left: 5px;
+        }
+
+        .task-text {
+            font-size: 18px;
+            transition: opacity 0.3s;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            min-width: 0;
+        }
+
+        .task-text.completed {
+            opacity: 0.5;
+        }
+
+        /* Green Checkbox */
+        .checkbox-container {
+            display: flex;
+            justify-content: center;
+        }
+        .checkbox-custom {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+        .checkbox-custom:hover {
+            border-color: rgba(0, 0, 0, 0.4);
+        }
+        .checkbox-custom:checked {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+        .checkbox-custom:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 16px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Actions */
+        .actions-group {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .icon-separator {
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 18px;
+            pointer-events: none;
+            margin: 0 10px;
+        }
+        .delete-btn, .edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: rgba(0, 0, 0, 0.4);
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            color: #ff5252;
+            transform: scale(1.15);
+        }
+        .edit-btn:hover {
+            transform: scale(1.15);
+        }
+
+        /* Forms reset */
+        form { margin: 0; }
+
+        /* Particle Animation */
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%) scale(1);
+            animation: particleBurst 0.4s ease-out forwards;
+        }
+
+        @keyframes particleBurst {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(0px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+            opacity: 0;
+            transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+        }
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .delete-popup {
+            background: linear-gradient(-45deg, rgba(255,90,90,0.85), rgba(255,140,140,0.85), rgba(255,90,90,0.85));
+            background-size: 200% 200%;
+            animation: redFog 5s ease infinite;
+            padding: 35px 30px;
+            width: 90%;
+            max-width: 380px;
+            position: relative;
+            text-align: center;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            box-shadow: 8px 8px 16px rgba(0,0,0,0.1), -8px -8px 16px rgba(255,255,255,0.1);
+        }
+        .modal-overlay.show .delete-popup {
+            transform: translateY(0);
+        }
+
+        @keyframes redFog {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 5px;
+        }
+        .close-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        .modal-btn {
+            flex-grow: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .cancel-btn {
+            background: rgba(200, 200, 200, 0.4);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .cancel-btn:hover {
+            background: rgba(200, 200, 200, 0.6);
+        }
+        .confirm-btn {
+            background: rgba(255, 0, 0, 0.5);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .confirm-btn:hover {
+            background: rgba(255, 0, 0, 0.7);
+        }
+
+        /* Inline Edit */
+        .edit-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #333;
+            font-size: inherit;
+            font-family: inherit;
+            color: inherit;
+            outline: none;
+            display: none;
+            padding-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    
+    <!-- HEADER -->
+    <div class="header-section">
+        <div class="title-container glass-box">
+            <h1>Task Manager</h1>
+        </div>
+        <div class="profile-box glass-box">
+            👤
+        </div>
+    </div>
+
+    <!-- INPUT + FILTER -->
+    <div class="controls-section">
+        <div class="filter-buttons">
+            <a href="/?filter=all" class="filter-btn glass-box {% if current_filter == 'all' or not current_filter %}active{% endif %}">All</a>
+            <a href="/?filter=active" class="filter-btn glass-box {% if current_filter == 'active' %}active{% endif %}">Active</a>
+            <a href="/?filter=completed" class="filter-btn glass-box {% if current_filter == 'completed' %}active{% endif %}">Completed</a>
+        </div>
+        
+        <form action="/" method="POST" class="input-group" id="mainForm" onsubmit="disableSubmit(this)">
+            <input type="text" name="task" id="taskInput" class="task-input" placeholder="Enter your Tasks here..." required>
+            <div class="enter-group glass-box">
+                <button type="submit" id="enterBtn" class="enter-btn">Enter</button>
+                <div class="divider"></div>
+                <button type="button" class="search-toggle-btn" onclick="toggleSearch()" title="Toggle Search">🔍</button>
+            </div>
+            {% if error %}
+            <div style="position: absolute; top: calc(100% + 5px); right: 0; color: #ff5252; font-weight: 600; font-size: 14px;">{{ error }}</div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="task-list-container glass-box">
+        {% for task in tasks %}
+            <div class="task-row">
+                <!-- 1. Serial number -->
+                <div class="task-index">{{ loop.index }}</div>
+                
+                <!-- 2. Task text (Inline Editable) -->
+                <div class="task-text {% if task.completed %}completed{% endif %}">
+                    <form action="/edit/{{ task.id }}" method="POST" style="width: 100%;" onsubmit="disableSubmit(this)">
+                        <span class="task-text-content">{{ task.task }}</span>
+                        <input type="text" name="task_text" class="edit-input" value="{{ task.task }}" onblur="this.form.submit()" onkeydown="if(event.key === 'Enter') this.form.submit();">
+                    </form>
+                </div>
+
+                <!-- 3. Actions (Edit, Checkbox, Delete) -->
+                <div class="actions-group">
+                    <button type="button" class="edit-btn" title="Edit Task" onclick="enableEdit(this)">✏️</button>
+                    
+                    <span class="icon-separator">|</span>
+                    
+                    <div class="checkbox-container">
+                        <form action="/complete/{{ task.id }}" method="POST" style="display: flex;">
+                            <input type="checkbox" class="checkbox-custom" onclick="createParticles(event); disableCheckbox(this);" onchange="this.form.submit()" {% if task.completed %}checked{% endif %}>
+                        </form>
+                    </div>
+
+                    <span class="icon-separator">|</span>
+                    
+                    <button type="button" class="delete-btn" title="Delete Task" onclick="openDeleteModal({{ task.id }})">🗑️</button>
+                </div>
+            </div>
+        {% else %}
+            <div style="text-align: center; color: rgba(0,0,0,0.4); padding: 40px 0; font-size: 16px;">
+                No tasks available in this view.
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="delete-popup glass-box">
+        <button class="close-btn" onclick="closeModal()">✖</button>
+        <h3 style="margin-bottom: 10px; font-weight: 500;">Are you sure to Delete this tasks</h3>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel-btn" onclick="closeModal()">Cancel</button>
+            <form id="deleteForm" method="POST" style="flex-grow: 1;" onsubmit="disableSubmit(this)">
+                <button type="submit" class="modal-btn confirm-btn" style="width: 100%;">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Double Action Prevention
+    function disableSubmit(form) {
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            setTimeout(() => { btn.disabled = false; btn.style.opacity = '1'; }, 800);
+        }
+    }
+
+    function disableCheckbox(cb) {
+        cb.style.pointerEvents = 'none';
+        setTimeout(() => { cb.style.pointerEvents = 'auto'; }, 800);
+    }
+
+    // Max Length Validation
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputs = document.querySelectorAll('.task-input, .edit-input');
+        
+        inputs.forEach(input => {
+            const validate = () => {
+                if (input.value.length > 200) {
+                    input.setCustomValidity('⚠ Max 200 characters allowed');
+                } else {
+                    input.setCustomValidity('');
+                }
+            };
+
+            // Real-time validation
+            input.addEventListener('input', validate);
+
+            const form = input.closest('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    validate();
+                    if (input.value.length > 200) {
+                        e.preventDefault();
+                        input.reportValidity();
+                    }
+                });
+            }
+
+            // For inline edit inputs, override the inline handlers to enforce validation
+            if (input.classList.contains('edit-input')) {
+                input.removeAttribute('onblur');
+                input.removeAttribute('onkeydown');
+                
+                input.addEventListener('blur', function() {
+                    validate();
+                    if (input.value.length <= 200) {
+                        form.submit();
+                    } else {
+                        input.reportValidity();
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        validate();
+                        if (input.value.length <= 200) {
+                            form.submit();
+                        } else {
+                            input.reportValidity();
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    // Search Feature
+    let isSearchMode = false;
+    function toggleSearch() {
+        isSearchMode = !isSearchMode;
+        const input = document.getElementById('taskInput');
+        const mainForm = document.getElementById('mainForm');
+        
+        if (isSearchMode) {
+            input.placeholder = "Search tasks...";
+            input.removeAttribute('required'); // don't require for search
+            mainForm.onsubmit = (e) => { e.preventDefault(); return false; }; // stop adding task
+            input.oninput = (e) => highlightTasks(e.target.value);
+        } else {
+            input.placeholder = "Enter your Tasks here...";
+            input.setAttribute('required', 'required');
+            mainForm.onsubmit = null;
+            input.oninput = null;
+            input.value = '';
+            highlightTasks(''); // clear highlights
+        }
+    }
+
+    function highlightTasks(query) {
+        query = query.toLowerCase();
+        document.querySelectorAll('.task-row').forEach(row => {
+            const textContent = row.querySelector('.task-text-content');
+            if (!textContent) return;
+            const text = textContent.innerText.toLowerCase();
+            
+            if (query && text.includes(query)) {
+                row.classList.add('highlight');
+            } else {
+                row.classList.remove('highlight');
+            }
+        });
+    }
+
+    // Inline Edit Feature
+    function enableEdit(btn) {
+        const row = btn.closest('.task-row');
+        const span = row.querySelector('.task-text-content');
+        const input = row.querySelector('.edit-input');
+        span.style.display = 'none';
+        input.style.display = 'block';
+        input.focus();
+        
+        // Move cursor to end
+        const val = input.value;
+        input.value = '';
+        input.value = val;
+    }
+
+    // Modal Feature
+    function openDeleteModal(taskId) {
+        const modal = document.getElementById('deleteModal');
+        const form = document.getElementById('deleteForm');
+        form.action = `/delete/${taskId}`;
+        modal.style.display = 'flex';
+        // Allow DOM update before transition
+        requestAnimationFrame(() => {
+            modal.classList.add('show');
+        });
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300); // Wait for transition
+    }
+</script>
+
+</body>
+</html>
